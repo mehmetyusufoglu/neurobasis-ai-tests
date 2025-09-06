@@ -1,0 +1,17 @@
+# AI Model Inference Benchmarking Project
+# Canonical, deduplicated dependencies for inference benchmarks.
+# (Pin versions here if reproducibility across HPC systems is required.)
+
+torch
+torchvision
+transformers
+datasets      # for text dataset helpers (wikitext etc.)
+tqdm          # progress (future use)
+psutil        # memory monitoring
+tabulate      # nice CLI tables
+numpy         # general numeric helpers (optional but common)
+
+# Optional (uncomment if/when used):
+# PyYAML
+# packaging
+# yamlargparse
