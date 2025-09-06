@@ -22,6 +22,13 @@ Input: 1x28x28
 
 Benchmarks default to LeNetClassic via the alias `LeNet` to ensure parity with
 the Alpaka3 implementation (32x32 pathway, MaxPool).
+
+SHAPES Summarized
+Conv1 (5×5, no padding): 32 → 28 → shape 6×28×28
+MaxPool (2×2): 28 → 14 → shape 6×14×14
+Conv2 (5×5, no padding): 14 → 10 → shape 16×10×10
+MaxPool (2×2): 10 → 5 → shape 16×5×5 Flatten: 16 * 5 * 5 = 400 neurons → FC1 input size.
+
 """
 
 import torch

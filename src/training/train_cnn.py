@@ -1,3 +1,47 @@
+"""General CNN training utility for small vision benchmarks (LeNet / ResNet).
+
+Purpose
+-------
+Minimal, reproducible reference training loop to produce checkpoints for
+inference benchmarking and cross-language (Python vs Alpaka3 C++) parity tests.
+
+Pipeline Steps
+--------------
+1. Select device (CUDA -> XPU -> MPS -> CPU).
+2. Load dataset (MNIST padded to 32x32 for LeNetClassic; or CIFAR10) via
+     helper loaders in `data`.
+3. Instantiate model (`lenet` or `resnet18` / other resnet*).
+4. Create optimizer (Adam) + loss (CrossEntropyLoss).
+5. Train epoch: forward -> loss -> backward -> optimizer.step().
+6. Eval epoch: forward-only with metrics.
+7. Append per-epoch JSON record to results file (`--out`).
+8. Save best checkpoint (`--save-path`) keyed on evaluation accuracy.
+
+Checkpoint Format
+-----------------
+torch.save({'model': name, 'dataset': dataset, 'epoch': N, 'state_dict': model.state_dict(), 'metrics': last_record})
+The benchmark script can load either this dict or a raw state_dict.
+
+Determinism
+-----------
+`--seed` sets Python + Torch CPU/GPU RNG and enforces deterministic CuDNN.
+This may reduce ultimate peak performance slightly but ensures repeatability.
+
+Typical LeNet (MNIST) Run
+-------------------------
+python src/training/train_cnn.py --model lenet --dataset mnist --epochs 5 \
+    --batch-size 128 --save-path checkpoints/lenet_mnist.pt --out results_lenet.jsonl
+
+Expected LeNet test accuracy: ~96-97% after 1 epoch, ~98-99% after 5 epochs.
+
+Benchmark Usage
+---------------
+After training: pass `--weights checkpoints/lenet_mnist.pt` to
+`benchmarks/benchmark_lenet.py` to measure optimized inference latency.
+
+Lightweight by design: No LR scheduling, mixed precision, or augmentation —
+add as needed for extended experiments.
+"""
 import time, json, os, random, sys
 import torch
 from torch import nn, optim

@@ -1,3 +1,19 @@
+"""LeNet inference micro-benchmark.
+
+Measures per-batch latency and throughput after a warmup phase using the
+training split (same complexity as test) and optional accuracy on a subset of
+the test set. Supports precision selection and loading a trained checkpoint.
+
+Key flags:
+    --weights <path>       Load saved state_dict/ checkpoint before timing
+    --eval-accuracy        Report test accuracy over first N batches (--acc-batches)
+    --precision fp32|fp16|bf16  Mixed precision via autocast when supported
+
+Example:
+    python benchmarks/benchmark_lenet.py --device cuda --batch-size 256 \
+            --warmup 5 --iters 50 --weights checkpoints/lenet_mnist.pt --eval-accuracy
+"""
+
 import torch, time, sys, argparse
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
