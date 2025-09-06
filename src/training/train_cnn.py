@@ -41,6 +41,10 @@ After training: pass `--weights checkpoints/lenet_mnist.pt` to
 
 Lightweight by design: No LR scheduling, mixed precision, or augmentation —
 add as needed for extended experiments.
+
+ResNet18 (CIFAR-10) Training Example
+
+python src/training/train_cnn.py --model resnet18 --dataset cifar10 --epochs 1 --batch-size 128 --data-dir data --save-path checkpoints/resnet18_cifar10.pt --out results_resnet18_cifar10.jsonl
 """
 import time, json, os, random, sys
 import torch

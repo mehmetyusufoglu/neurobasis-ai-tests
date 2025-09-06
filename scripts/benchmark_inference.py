@@ -1,4 +1,29 @@
 #!/usr/bin/env python
+"""Unified inference benchmarking script.
+
+Purpose:
+    Measure latency, distribution stats (mean/median/p95), and throughput for
+    several reference models (LeNet, ResNet50, BERT base, GPT-2) on a selected
+    device and precision. Optionally tests multiple batch sizes in one run.
+
+Features:
+    * Auto device selection (cuda/xpu/mps/cpu) unless overridden.
+    * Warmup phase + timed iterations with CUDA synchronization for accuracy.
+    * Mixed precision (fp16/bf16) via autocast when supported.
+    * Optional torch.compile acceleration (PyTorch 2.x).
+    * Memory monitoring (host RSS delta + CUDA peak if GPU).
+    * TSV append or single-record JSON export for automated result collection.
+
+Example:
+    python scripts/benchmark_inference.py --model resnet50 \
+            --batch-size 1 8 32 --precision fp16 --warmup 10 --iters 50 \
+            --export-tsv results/resnet.tsv
+
+Note:
+    For LeNet this uses synthetic random input (28x28) unless --real-data is
+    extended in the future; current flag placeholder only. Adjust or extend
+    factories for more models if needed.
+"""
 import argparse
 import json
 import os
