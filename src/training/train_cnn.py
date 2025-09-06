@@ -1,10 +1,16 @@
-import time, json, os
+import time, json, os, random, sys
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from typing import Dict
-from ..models import LeNet, get_resnet
-from ..data import get_mnist, get_cifar10
+
+# Allow running as a standalone script without installing the package
+SRC_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if SRC_ROOT not in sys.path:
+    sys.path.insert(0, SRC_ROOT)
+
+from models import LeNet, get_resnet  # type: ignore
+from data import get_mnist, get_cifar10  # type: ignore
 
 
 def select_device() -> torch.device:
@@ -68,7 +74,24 @@ def eval_epoch(model, loader, criterion, device):
     }
 
 
-def run_cnn(model_name: str='lenet', dataset: str='mnist', epochs: int=1, batch_size: int=64, data_dir: str='./data', out: str='results_cnn.jsonl'):
+def set_seed(seed: int):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def run_cnn(model_name: str='lenet',
+            dataset: str='mnist',
+            epochs: int=1,
+            batch_size: int=64,
+            data_dir: str='./data',
+            out: str='results_cnn.jsonl',
+            save_path: str|None=None,
+            lr: float=1e-3,
+            seed: int=42):
+    set_seed(seed)
     device = select_device()
     num_classes = 10
     if dataset == 'mnist':
@@ -80,9 +103,10 @@ def run_cnn(model_name: str='lenet', dataset: str='mnist', epochs: int=1, batch_
 
     model = build_model(model_name, num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     metrics = []
+    best_acc = -1.0
     for epoch in range(1, epochs+1):
         tr = train_epoch(model, train_loader, criterion, optimizer, device)
         ev = eval_epoch(model, test_loader, criterion, device)
@@ -90,6 +114,17 @@ def run_cnn(model_name: str='lenet', dataset: str='mnist', epochs: int=1, batch_
         metrics.append(record)
         with open(out, 'a') as f:
             f.write(json.dumps(record) + '\n')
+        # Checkpoint best
+        if save_path:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            if ev['acc'] > best_acc:
+                best_acc = ev['acc']
+                torch.save({'model': model_name,
+                            'dataset': dataset,
+                            'epoch': epoch,
+                            'state_dict': model.state_dict(),
+                            'metrics': record}, save_path)
+                print(f"Saved new best checkpoint (acc={best_acc*100:.2f}%) -> {save_path}")
     return metrics
 
 if __name__ == '__main__':
@@ -101,5 +136,8 @@ if __name__ == '__main__':
     p.add_argument('--batch-size', type=int, default=64)
     p.add_argument('--data-dir', default='./data')
     p.add_argument('--out', default='results_cnn.jsonl')
+    p.add_argument('--save-path', default='checkpoints/lenet_mnist.pt')
+    p.add_argument('--lr', type=float, default=1e-3)
+    p.add_argument('--seed', type=int, default=42)
     args = p.parse_args()
-    run_cnn(args.model, args.dataset, args.epochs, args.batch_size, args.data_dir, args.out)
+    run_cnn(args.model, args.dataset, args.epochs, args.batch_size, args.data_dir, args.out, args.save_path, args.lr, args.seed)
