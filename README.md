@@ -28,10 +28,37 @@ Key Features
 
 Quick Start
 -----------
+**Setup (run these commands from the `ai_model_tests/` directory):**
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# 1. Navigate to the project directory first
+cd ai_model_tests/
 
+# 2. Create and activate virtual environment
+# Check if environment exists: ls -la .venv/
+# Check if already active: echo $VIRTUAL_ENV
+python -m venv .venv && source .venv/bin/activate
+
+# If .venv already exists, just activate:
+# source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+```
+
+**Individual Model Benchmarks:**
+```bash
+# LeNet on MNIST (with trained checkpoint)
+python benchmarks/benchmark_lenet.py --device cuda --eval-accuracy --weights checkpoints/lenet_mnist.pt
+
+# ResNet18 on CIFAR-10 
+python benchmarks/benchmark_resnet.py --device cuda --batch-size 128 --iters 50
+
+# Train a model first (optional - checkpoints provided)
+python src/training/train_cnn.py --model lenet --dataset mnist --epochs 1 --save-path checkpoints/lenet_mnist.pt
+```
+
+**Unified Benchmark Script:**
+```bash
 # Single run (ResNet50, batch 8, 50 timed iterations)
 python scripts/benchmark_inference.py --model resnet50 --batch-size 8 --iters 50
 
@@ -45,16 +72,64 @@ python scripts/benchmark_inference.py --model gpt2 --precision fp16 --sequence-l
 python scripts/benchmark_inference.py --model resnet50 --batch-size 1 2 4 8 16 --iters 100 --export-tsv results/resnet_sweep.tsv
 ```
 
+## Data Management
+
+**Dataset Download & Storage:**
+All datasets are automatically downloaded on first use and stored in the `data/` directory.
+
+**Available Data Loaders (`src/data/`):**
+- `mnist.py`: MNIST handwritten digits (28x28 → padded to 32x32)
+  - Auto-downloads from `http://yann.lecun.com/exdb/mnist/`
+  - Used by: LeNet training/benchmarking
+  - Storage: `data/MNIST/raw/` (~50MB)
+  
+- `cifar10.py`: CIFAR-10 natural images (32x32, 10 classes)
+  - Auto-downloads from `https://www.cs.toronto.edu/~kriz/cifar.html`
+  - Used by: ResNet training/benchmarking
+  - Storage: `data/cifar-10-batches-py/` (~170MB)
+  - Includes data augmentation (RandomCrop, RandomHorizontalFlip)
+
+- `text.py`: Text dataset utilities for BERT/GPT-2
+  - Placeholder for tokenized text datasets
+  - Most benchmarks use synthetic/random tokens
+
+**How Data Loaders Are Called:**
+```python
+# In training scripts (src/training/train_cnn.py):
+from data import get_mnist, get_cifar10
+
+# MNIST with 32x32 padding for LeNet
+train_loader, test_loader = get_mnist(data_dir="./data", batch_size=128)
+
+# CIFAR-10 with augmentation for ResNet
+train_loader, test_loader = get_cifar10(data_dir="./data", batch_size=128)
+```
+
+**Manual Data Directory Setup (optional):**
+```bash
+# Pre-create data directory
+mkdir -p data/
+
+# First run will auto-download:
+python src/training/train_cnn.py --model lenet --dataset mnist --epochs 1
+```
+
 Directory Layout
 ----------------
 ```
 ai_model_tests/
-  models/          # Model definitions / wrappers
-  utils/           # Benchmark + device helpers
-  scripts/         # CLI frontends
-  configs/         # (Future) YAML configs per model
-  results/         # Output artifacts (gitignored)
-  data/            # Downloaded datasets (MNIST) (gitignored)
+  src/
+    data/          # Dataset loaders (mnist.py, cifar10.py, text.py)
+    models/        # Model definitions / wrappers  
+    utils/         # Benchmark + device helpers
+    training/      # Training loops
+  benchmarks/      # Individual model benchmark scripts
+  scripts/         # Unified benchmark frontend
+  data/            # Downloaded datasets (auto-created, gitignored)
+    MNIST/         # MNIST dataset files
+    cifar-10-batches-py/  # CIFAR-10 dataset files
+  checkpoints/     # Trained model weights
+  results/         # Benchmark output files (gitignored)
 ```
 
 Extending
@@ -107,15 +182,28 @@ tests/             Basic sanity tests
 
 ## Quick Start
 ```bash
+# 1. Clone or navigate to the project directory
+cd ai_model_tests/
+
+# 2. Setup Python environment
 python -m venv .venv && source .venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
 
-# Example: Train LeNet on MNIST
-python -m src.benchmarks.run_cnn --model lenet --dataset mnist --epochs 1
+# 3. Run a quick benchmark test
+python benchmarks/benchmark_lenet.py --device cuda --eval-accuracy --weights checkpoints/lenet_mnist.pt
 
-# Example: Benchmark GPT-2 inference
-python -m src.benchmarks.run_llm --model gpt2 --max-length 64 --batch-size 2
+# 4. Or train a model first, then benchmark
+python src/training/train_cnn.py --model lenet --dataset mnist --epochs 1
+```
+
+## Example Commands
+```bash
+# Example: Train LeNet on MNIST
+python src/training/train_cnn.py --model lenet --dataset mnist --epochs 1
+
+# Example: Benchmark GPT-2 inference  
+python scripts/benchmark_inference.py --model gpt2 --max-length 64 --batch-size 2
 ```
 
 ## HPC Notes
