@@ -220,3 +220,13 @@ JSON lines (*.jsonl) with: system hw summary (collected), model name, config has
 
 ## License
 MIT (placeholder)
+
+
+
+LeNet Classic Batch Size Scaling Results
+BatchSize	Mean  Latency	  Median  Throughput (samples/s)
+16	  0.909 ms	0.897 ms	1.721 ms	17,599
+32	  1.629 ms	1.580 ms	3.332 ms	19,649
+64	  1.065 ms	0.978 ms	1.818 ms	60,100
+128	  1.345 ms	1.201 ms	2.094 ms	95,177
+256	  1.160 ms	1.085 ms	1.753 ms	220,728
